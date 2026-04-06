@@ -3,7 +3,35 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/miekg/dns"
 )
+
+var timezones = map[string]string{
+	"london":     "Europe/London",
+	"paris":      "Europe/Paris",
+	"tokyo":      "Asia/Tokyo",
+	"india":      "Asia/Kolkata",
+	"california": "America/Los_Angeles",
+	"new york":   "America/New_York",
+	"dubai":      "Asia/Dubai",
+	"sydney":     "Australia/Sydney",
+	"singapore":  "Asia/Singapore",
+}
+
+func getTime(location string) string {
+
+	if tz, ok := timezones[location]; ok {
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			return "error: bad timezone"
+		}
+		return time.Now().In(loc).Format("15:04:05 MST, Mon 02 Jan 2006")
+	}
+	return "error: location not supported"
+
+}
 
 func parseQuery(domain string) (command, location string) {
 	domain = strings.TrimSuffix(domain, ".")
@@ -27,10 +55,16 @@ func parseQuery(domain string) (command, location string) {
 }
 
 func main() {
-	fmt.Println(parseQuery("time.london"))         // time london
-	fmt.Println(parseQuery("weather.tokyo"))       // weather tokyo
-	fmt.Println(parseQuery("time.new.york"))       // time new york
-	fmt.Println(parseQuery("weather.los.angeles")) // weather los angeles
-	fmt.Println(parseQuery("hello.world"))         // "" ""
-	fmt.Println(parseQuery("time."))               // "" "" (no location)
+	dns.HandleFunc(".", handleQuery)
+
+	server := &dns.Server{
+		Addr: ":8053",
+		Net:  "udp",
+	}
+
+	fmt.Println("DNS server running on :8053")
+	err := server.ListenAndServe()
+	if err != nil {
+		fmt.Println("error:", err)
+	}
 }
