@@ -6,9 +6,10 @@ func handleQuery(w dns.ResponseWriter, r *dns.Msg) {
 
 	name := r.Question[0].Name
 	command, location := parseQuery(name)
+	locTimezone := getTime(location)
 	var answer string
 	if command == "time" {
-		answer = getTime(location)
+		answer = (locTimezone)
 	} else {
 		answer = "error: unknown command"
 	}
